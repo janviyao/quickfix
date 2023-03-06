@@ -132,7 +132,7 @@ function! s:QuickLoad(module, index)
         if a:module == "csfind"
             call setqflist([], 'a', {'quickfixtextfunc': 's:CSFindQuickfixFormat'})
         elseif a:module == "grep"
-            call setqflist([], 'a', {'quickfixtextfunc': 'GrepQuickfixFormat'})
+            call setqflist([], 'a', {'quickfixtextfunc': 's:GrepQuickfixFormat'})
         endif
 
         let retCode = setqflist([], 'a', {'idx': s:qfix_pick})
@@ -587,6 +587,24 @@ function! s:QuickDumpInfo(module)
     call PrintMsg("file", "")
 endfunction
 
+function! s:GrepQuickfixFormat(info)
+    "get information about a range of quickfix entries
+    let items = getqflist({'id' : a:info.id, 'items' : 1}).items
+    let newList = []
+    for idx in range(a:info.start_idx - 1, a:info.end_idx - 1)
+        "call PrintMsg("file", string(items[idx]))
+        if items[idx].lnum == 0
+            call add(newList, "|| ".items[idx].text)
+        else
+            "use the simplified file name
+            let lnctn = fnamemodify(bufname(items[idx].bufnr), ':p:.')."| ".items[idx].lnum." | ".items[idx].text
+            call add(newList, lnctn)
+        endif
+    endfor
+    
+    return newList
+endfunc
+
 function! qfix#QuickCtrl(module, mode)
     call PrintMsg("file", a:module." mode: ".a:mode)
     if a:mode == "open"
@@ -805,7 +823,7 @@ function! qfix#QuickCtrl(module, mode)
 endfunction
 
 "CS命令
-function! CSFind(ccmd)
+function! qfix#CSFind(ccmd)
     let csarg = expand('<cword>')
     call PrintMsg("file", "CSFind: ".csarg)
     call ToggleWindow("allclose")
@@ -849,25 +867,7 @@ function! CSFind(ccmd)
     call qfix#QuickCtrl(g:quickfix_module, "open")
 endfunction
 
-function! GrepQuickfixFormat(info)
-    "get information about a range of quickfix entries
-    let items = getqflist({'id' : a:info.id, 'items' : 1}).items
-    let newList = []
-    for idx in range(a:info.start_idx - 1, a:info.end_idx - 1)
-        "call PrintMsg("file", string(items[idx]))
-        if items[idx].lnum == 0
-            call add(newList, "|| ".items[idx].text)
-        else
-            "use the simplified file name
-            let lnctn = fnamemodify(bufname(items[idx].bufnr), ':p:.')."| ".items[idx].lnum." | ".items[idx].text
-            call add(newList, lnctn)
-        endif
-    endfor
-    
-    return newList
-endfunc
-
-function! GrepFind()
+function! qfix#GrepFind()
     let csarg = expand('<cword>')
     silent! normal! mX
 
@@ -892,7 +892,7 @@ function! GrepFind()
         return
     endif
 
-    call setqflist([], 'a', {'quickfixtextfunc': 'GrepQuickfixFormat'}) 
+    call setqflist([], 'a', {'quickfixtextfunc': 's:GrepQuickfixFormat'}) 
     call qfix#QuickCtrl(g:quickfix_module, "home")
     call qfix#QuickCtrl(g:quickfix_module, "open")
 endfunction
