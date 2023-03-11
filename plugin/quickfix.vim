@@ -25,6 +25,18 @@ augroup QFixToggle
     autocmd CursorMoved * if exists("s:qfix_opened") && &buftype != 'quickfix' | call qfix#ctrl_main(g:quickfix_module, "close") | endif
 augroup END
 
+function! quick_ctrl(module, mode)
+    call qfix#ctrl_main(a:module, a:mode)
+endfunction
+
+function! quick_csfind(ccmd)
+    call qfix#csfind(a:ccmd)
+endfunction
+
+function! quick_grep()
+    call qfix#grep_find()
+endfunction
+
 "切换下一条quickfix记录
 nnoremap <silent> <Leader>qf  :call qfix#ctrl_main(g:quickfix_module, "next")<CR>
 nnoremap <silent> <Leader>qb  :call qfix#ctrl_main(g:quickfix_module, "prev")<CR>
@@ -33,3 +45,13 @@ nnoremap <silent> <Leader>qrc :call qfix#ctrl_main(g:quickfix_module, "recover")
 nnoremap <silent> <Leader>qrf :call qfix#ctrl_main(g:quickfix_module, "recover-next")<CR>
 nnoremap <silent> <Leader>qrb :call qfix#ctrl_main(g:quickfix_module, "recover-prev")<CR>
 
+function! s:timer_run(timer_id)
+    let data_index = worker#get_data_index()
+    call PrintMsg("file", "timer data_index: ".data_index)
+
+    if data_index >= 0
+        call worker#data_handle(data_index)
+    endif
+endfunction
+
+let s:timer_id = timer_start(200, "s:timer_run", {'repeat': -1})

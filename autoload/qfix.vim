@@ -74,7 +74,9 @@ function! s:quick_load(module, index)
         "first load
         let indexFile = GetVimDir(1,"quickfix").'/index.'.a:module
         if filereadable(indexFile)
-            let loadIndex = str2nr(get(readfile(indexFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, indexFile, 'b', 1)
+            let loadIndex = str2nr(get(data, 0, ''))
+            "let loadIndex = str2nr(get(readfile(indexFile, 'b', 1), 0, ''))
         else
             let loadIndex = 0
         endif
@@ -102,7 +104,9 @@ function! s:quick_load(module, index)
 
         let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".loadIndex
         if filereadable(infoFile)
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
         else
             let infoDic = { "pick": 1, "title": "!anon!" } 
         endif
@@ -119,7 +123,8 @@ function! s:quick_load(module, index)
         let s:qfix_index_next = copy(infoDic.index_next)
 
         call setqflist([], "r")
-        let qflist = readfile(listFile, "")
+        let qflist = sync#read_list(a:module, listFile, '', 9999999)
+        "let qflist = readfile(listFile, "")
         for item in qflist
             let dicTmp = eval(item)
             let retCode = setqflist([dicTmp], 'a')
@@ -160,7 +165,8 @@ function! s:quick_load(module, index)
 
         "save the newest index
         let indexFile = GetVimDir(1,"quickfix").'/index.'.a:module
-        call writefile([s:qfix_index], indexFile, 'b')
+        call async#write_list(a:module, indexFile, 'b', [s:qfix_index])
+        "call writefile([s:qfix_index], indexFile, 'b')
 
         call s:quick_dump_info(a:module)
         return 0
@@ -186,7 +192,9 @@ function! s:quick_persist_info(module, index, key="", value="")
         let infoDic['fcol'] = col(".")
     else
         if filereadable(infoFile)
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
             if strlen(a:value) <= 0
                 if a:key == "time"
                     let infoDic['time'] = localtime() 
@@ -216,7 +224,8 @@ function! s:quick_persist_info(module, index, key="", value="")
     endif
 
     call PrintMsg("file", a:module." save info: ".string(infoDic))
-    call writefile([string(infoDic)], infoFile, 'b')
+    call async#write_dic(a:module, infoFile, 'b', infoDic)
+    "call writefile([string(infoDic)], infoFile, 'b')
 endfunction
 
 function! s:quick_persist_list(module, index, qflist)
@@ -226,20 +235,21 @@ function! s:quick_persist_list(module, index, qflist)
 
     let listFile = GetVimDir(1,"quickfix").'/list.'.a:module.".".a:index
     call writefile([], listFile, 'r')
-    for item in a:qflist
-        let fname=fnamemodify(bufname(item.bufnr), ':p:.') 
-        let item["filename"]=fname
-        let item["bufnr"]=0
+    call async#write_list(a:module, listFile, 'a', a:qflist)
+    "for item in a:qflist
+    "    let fname=fnamemodify(bufname(item.bufnr), ':p:.') 
+    "    let item["filename"]=fname
+    "    let item["bufnr"]=0
 
-        if has_key(item, "end_lnum")
-            unlet item["end_lnum"]
-        endif
-        if has_key(item, "end_col")
-            unlet item["end_col"]
-        endif
+    "    if has_key(item, "end_lnum")
+    "        unlet item["end_lnum"]
+    "    endif
+    "    if has_key(item, "end_col")
+    "        unlet item["end_col"]
+    "    endif
 
-        call writefile([string(item)], listFile, 'a')
-    endfor
+    "    call writefile([string(item)], listFile, 'a')
+    "endfor
 endfunction
 
 function! s:quick_save(module, index)
@@ -252,7 +262,8 @@ function! s:quick_save(module, index)
         endif
 
         let indexFile = GetVimDir(1,"quickfix").'/index.'.a:module
-        call writefile([a:index], indexFile, 'b')
+        call async#write_list(a:module, indexFile, 'b', [a:index])
+        "call writefile([a:index], indexFile, 'b')
 
         call s:quick_persist_info(a:module, a:index)
         call s:quick_persist_list(a:module, a:index, qflist)
@@ -276,7 +287,9 @@ function! s:quick_delete(module, index)
 
     let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".a:index
     if filereadable(infoFile)
-        let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+        let data = sync#read_list(a:module, infoFile, 'b', 1)
+        let infoDic = eval(get(data, 0, ''))
+        "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
         let index_prev = infoDic.index_prev
         let index_next = infoDic.index_next
 
@@ -296,7 +309,9 @@ function! s:quick_delete(module, index)
             let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".homeIndex
             if filereadable(infoFile)
                 let isWrite = 0
-                let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+                let data = sync#read_list(a:module, infoFile, 'b', 1)
+                let infoDic = eval(get(data, 0, ''))
+                "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
 
                 let indexVal = index(infoDic.index_next, a:index)    
                 if indexVal >= 0 
@@ -325,7 +340,8 @@ function! s:quick_delete(module, index)
                 endif
 
                 if isWrite == 1
-                    call writefile([string(infoDic)], infoFile, 'b')
+                    call async#write_dic(a:module, infoFile, 'b', infoDic)
+                    "call writefile([string(infoDic)], infoFile, 'b')
                 endif
             endif
 
@@ -352,7 +368,9 @@ function! s:quick_get_index(module, mode, index)
     let retIndex = []
     let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".a:index
     if filereadable(infoFile)
-        let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+        let data = sync#read_list(a:module, infoFile, 'b', 1)
+        let infoDic = eval(get(data, 0, ''))
+        "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
 
         if a:mode == "index"
             call add(retIndex, infoDic.index)
@@ -372,7 +390,9 @@ function! s:quick_info_seek(module, mode, index)
     let infoList = systemlist("ls ".GetVimDir(1,"quickfix")."/info.".a:module.".*")
     for infoFile in infoList
         if filereadable(infoFile)
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
             call PrintMsg("file", a:module." seek: ".string(infoDic))
 
             if a:mode == "index"
@@ -407,7 +427,9 @@ function! s:quick_find_oldest(module, indexList)
     for timeIndex in a:indexList
         let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".timeIndex
         if filereadable(infoFile)
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
             if timeMin > infoDic.time 
                 let timeMin = infoDic.time
                 let retIndex = timeIndex
@@ -428,7 +450,9 @@ function! s:quick_find_newest(module, indexList)
     for timeIndex in a:indexList
         let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".timeIndex
         if filereadable(infoFile)
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
             if timeMax < infoDic.time 
                 let timeMax = infoDic.time
                 let retIndex = timeIndex
@@ -445,7 +469,9 @@ function! s:quick_new_index(module, start, exclude)
     let siteIndex = g:quickfix_index_max
     let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".a:start
     if filereadable(infoFile)
-        let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+        let data = sync#read_list(a:module, infoFile, 'b', 1)
+        let infoDic = eval(get(data, 0, ''))
+        "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
         let indexList = copy(infoDic.index_next)
         while len(indexList) > 0
             let siteIndex = indexList[0] 
@@ -516,7 +542,9 @@ function! s:quick_find_home(module)
     while homeIndex < g:quickfix_index_max
         let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".homeIndex
         if filereadable(infoFile)
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
             if infoDic.title == newTitle 
                 call PrintMsg("file", a:module." find home: ".string(infoDic))
                 return homeIndex
@@ -538,7 +566,9 @@ function! s:quick_dump_info(module)
     while homeIndex < g:quickfix_index_max
         let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".homeIndex
         if filereadable(infoFile) 
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
             if empty(infoDic)
                 call PrintMsg("error", "info empty: ".infoFile)
                 let homeIndex += 1
@@ -574,7 +604,9 @@ function! s:quick_dump_info(module)
     while homeIndex < g:quickfix_index_max
         let infoFile = GetVimDir(1,"quickfix").'/info.'.a:module.".".homeIndex
         if filereadable(infoFile)
-            let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
+            let data = sync#read_list(a:module, infoFile, 'b', 1)
+            let infoDic = eval(get(data, 0, ''))
+            "let infoDic = eval(get(readfile(infoFile, 'b', 1), 0, ''))
             
             let indexInfo = printf("prev: %-2d index: %-2d ".nextFormat, infoDic.index_prev, infoDic.index, string(infoDic.index_next))
             let cursorInfo = printf("cursor: %d/%d", infoDic.fline, infoDic.fcol)
