@@ -23,7 +23,7 @@ function! async#write_dic(module, file, mode, dic_data) abort
     endif
 
     let work_index = worker#work_index_alloc(a:module, qfix_id)    
-    call worker#work_fill(work_index, "write", a:mode, "dic", a:file, -1, 0, a:dic_data)
+    call worker#work_fill(work_index, "write", a:mode, "dict", a:file, -1, 0, a:dic_data)
 endfunction
 
 function! async#write_list(module, file, mode, dic_data) abort

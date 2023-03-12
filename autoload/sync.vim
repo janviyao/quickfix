@@ -22,14 +22,14 @@ function! sync#read_dict(module, file, mode, line_num) abort
     endif
 
     let work_index = worker#work_index_alloc(a:module, qfix_id)    
-    call worker#work_fill(work_index, "read", a:mode, "dic", a:file, a:line_num, 0, {})
+    call worker#work_fill(work_index, "read", a:mode, "dict", a:file, a:line_num, 0, {})
     while worker#work_status(work_index) != 2
         call PrintMsg("file", "read_dict sleep: 50ms")
         silent! execute 'sleep 50m'
     endwhile
 
-    let data = worker#work_data(work_index, "dic")
-    call PrintDict("file", "read_dic result", data) 
+    let data = worker#work_data(work_index, "dict")
+    call PrintDict("file", "read_dict result", data) 
     return data
 endfunction
 

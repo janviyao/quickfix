@@ -2,30 +2,6 @@ let g:quickfix_module = "init"
 let g:quickfix_index_max = 50
 let g:quickfix_timer = 0 
 
-function! s:do_buf_enter()
-    if &buftype == "quickfix"
-        let s:qfix_opened = bufnr("$")
-    endif
-endfunction
-
-function! s:do_buf_leave()
-    if &buftype == "quickfix"
-        let s:qfix_pick = getqflist({'idx' : 0}).idx
-    endif
-endfunction
-
-"跟踪quickfix窗口状态
-augroup QFixToggle
-    autocmd!
-
-    autocmd BufWinEnter * call s:do_buf_enter()
-    autocmd BufWinLeave * call s:do_buf_leave()
-    autocmd BufLeave * call s:do_buf_leave()
-
-    "不在quickfix窗内移动，则关闭quickfix窗口
-    autocmd CursorMoved * if exists("s:qfix_opened") && &buftype != 'quickfix' | call quickfix#ctrl_main(g:quickfix_module, "close") | endif
-augroup END
-
 function! Quickfix_ctrl(module, mode)
     call quickfix#ctrl_main(a:module, a:mode)
 endfunction
