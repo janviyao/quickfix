@@ -37,7 +37,7 @@ function! s:quick_dump_info(module)
     let maxTitleLen = 0
     let home_index = 0
     while home_index < g:quickfix_index_max
-        let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".home_index
+        let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".home_index
         if filereadable(info_file) 
             let data = sync#read_list(a:module, info_file, 'b', 1)
             let info_dic = eval(get(data, 0, ''))
@@ -75,7 +75,7 @@ function! s:quick_dump_info(module)
 
     let home_index = 0
     while home_index < g:quickfix_index_max
-        let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".home_index
+        let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".home_index
         if filereadable(info_file)
             let data = sync#read_list(a:module, info_file, 'b', 1)
             let info_dic = eval(get(data, 0, ''))
@@ -185,7 +185,7 @@ function! s:quick_load(module, index)
     endif
 
     call PrintMsg("file", a:module." load index: ".load_index)
-    let list_file = GetVimDir(1,"quickfix").'/list.'.a:module.".".load_index
+    let list_file = GetVimDir(1, 'quickfix').'/list.'.a:module.'.'.load_index
     if filereadable(list_file) 
         let index_val = index(s:qfix_index_list, load_index)
         if index_val < 0 
@@ -198,7 +198,7 @@ function! s:quick_load(module, index)
             endif
         endif
 
-        let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".load_index
+        let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".load_index
         if filereadable(info_file)
             let info_dic = sync#read_dict(a:module, info_file, 'b', 1)
             "let info_dic = eval(get(readfile(info_file, 'b', 1), 0, ''))
@@ -258,7 +258,7 @@ function! s:quick_load(module, index)
         call cursor(info_dic.fline, info_dic.fcol)
 
         "save the newest index
-        let index_file = GetVimDir(1,"quickfix").'/index.'.a:module
+        let index_file = GetVimDir(1, "quickfix").'/index.'.a:module
         call async#write_list(a:module, index_file, 'b', [s:qfix_index])
         "call writefile([s:qfix_index], index_file, 'b')
         call s:quick_dump_info(a:module)
@@ -269,7 +269,7 @@ function! s:quick_load(module, index)
 endfunction
 
 function! s:quick_persist_info(module, index, key="", value="")
-    let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".a:index
+    let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".a:index
 
     let info_dic = {}
     if strlen(a:key) == 0
@@ -339,7 +339,7 @@ function! s:quick_persist_list(module, index, qflist)
         "call writefile([string(item)], list_file, 'a')
     endfor
 
-    let list_file = GetVimDir(1,"quickfix").'/list.'.a:module.".".a:index
+    let list_file = GetVimDir(1, "quickfix").'/list.'.a:module.".".a:index
     call writefile([], list_file, 'r')
     call async#write_list(a:module, list_file, 'a', a:qflist)
 endfunction
@@ -353,7 +353,7 @@ function! s:quick_save(module, index)
             call s:quick_load(a:module, a:index)
         endif
 
-        let index_file = GetVimDir(1,"quickfix").'/index.'.a:module
+        let index_file = GetVimDir(1, "quickfix").'/index.'.a:module
         call async#write_list(a:module, index_file, 'b', [a:index])
         "call writefile([a:index], index_file, 'b')
 
@@ -371,13 +371,13 @@ endfunction
 
 function! s:quick_delete(module, index)
     call PrintMsg("file", a:module." delete index: ".a:index)
-    let list_file = GetVimDir(1,"quickfix").'/list.'.a:module.".".a:index
+    let list_file = GetVimDir(1, "quickfix").'/list.'.a:module.".".a:index
     if filereadable(list_file)
         call delete(list_file)
         call PrintMsg("file", a:module." delete success: list".a:index)
     endif
 
-    let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".a:index
+    let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".a:index
     if filereadable(info_file)
         let data = sync#read_list(a:module, info_file, 'b', 1)
         let info_dic = eval(get(data, 0, ''))
@@ -398,7 +398,7 @@ function! s:quick_delete(module, index)
             endif
 
             let errHappen = 0
-            let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".home_index
+            let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".home_index
             if filereadable(info_file)
                 let isWrite = 0
                 let data = sync#read_list(a:module, info_file, 'b', 1)
@@ -443,7 +443,7 @@ function! s:quick_delete(module, index)
             endif
         endwhile
 
-        let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".a:index
+        let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".a:index
         call delete(info_file)
         call PrintMsg("file", a:module." delete success: info".a:index)
     endif
@@ -458,7 +458,7 @@ endfunction
 
 function! s:quick_get_index(module, mode, index)
     let retIndex = []
-    let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".a:index
+    let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".a:index
     if filereadable(info_file)
         let data = sync#read_list(a:module, info_file, 'b', 1)
         let info_dic = eval(get(data, 0, ''))
@@ -479,7 +479,7 @@ endfunction
 
 function! s:quick_info_seek(module, mode, index)
     let retIndex = -1
-    let info_list = systemlist("ls ".GetVimDir(1,"quickfix")."/info.".a:module.".*")
+    let info_list = systemlist("ls ".GetVimDir(1, "quickfix")."/info.".a:module.".*")
     for info_file in info_list
         if filereadable(info_file)
             let data = sync#read_list(a:module, info_file, 'b', 1)
@@ -517,7 +517,7 @@ function! s:quick_find_oldest(module, index_list)
     let retIndex = -1
     let timeIndex = 0 
     for timeIndex in a:index_list
-        let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".timeIndex
+        let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".timeIndex
         if filereadable(info_file)
             let info_dic = sync#read_dict(a:module, info_file, 'b', 1)
             "let info_dic = eval(get(readfile(info_file, 'b', 1), 0, ''))
@@ -539,7 +539,7 @@ function! s:quick_find_newest(module, index_list)
     let retIndex = -1
     let timeIndex = 0 
     for timeIndex in a:index_list
-        let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".timeIndex
+        let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".timeIndex
         if filereadable(info_file)
             let data = sync#read_list(a:module, info_file, 'b', 1)
             let info_dic = eval(get(data, 0, ''))
@@ -565,7 +565,7 @@ function! s:quick_new_index(module, start, exclude)
         let index_list = copy(info_dic.index_next)
         while len(index_list) > 0
             let site_index = index_list[0] 
-            let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".site_index
+            let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".site_index
             if filereadable(info_file)
                 call remove(index_list, 0)
             else
@@ -630,7 +630,7 @@ function! s:quick_find_home(module)
     let home_index = 0
     let newTitle = getqflist({'title' : 1}).title
     while home_index < g:quickfix_index_max
-        let info_file = GetVimDir(1,"quickfix").'/info.'.a:module.".".home_index
+        let info_file = GetVimDir(1, "quickfix").'/info.'.a:module.".".home_index
         if filereadable(info_file)
             let data = sync#read_list(a:module, info_file, 'b', 1)
             let info_dic = eval(get(data, 0, ''))
@@ -825,7 +825,7 @@ function! quickfix#ctrl_main(module, mode)
                 endif
             endif
 
-            let info_list = systemlist("ls ".GetVimDir(1,"quickfix")."/info.".a:module.".*")
+            let info_list = systemlist("ls ".GetVimDir(1, "quickfix")."/info.".a:module.".*")
             let tmpList = copy(info_list)
             for info_file in info_list
                 if !filereadable(info_file)
@@ -835,7 +835,7 @@ function! quickfix#ctrl_main(module, mode)
             endfor
 
             if len(tmpList) == 0 
-                let index_file = GetVimDir(1,"quickfix").'/index.'.a:module
+                let index_file = GetVimDir(1, "quickfix").'/index.'.a:module
                 if filereadable(index_file)
                     call delete(index_file)
                 endif

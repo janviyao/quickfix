@@ -5,6 +5,8 @@ set cpo&vim
 " Location of the grep utility
 if !exists("quickfix_async")
     let quickfix_async = 1
+else
+    let quickfix_async += 1
 endif
 
 function! async#write_dic(module, file, mode, dic_data) abort
@@ -16,7 +18,7 @@ function! async#write_dic(module, file, mode, dic_data) abort
     endif
     call PrintArgs("file", "write_dic", a:module, a:file, a:mode, "qfix_id=".qfix_id)
     "call PrintDict("file", "arg[4]", a:dic_data) 
-    "
+
     if worker#worker_is_stop() == 1
         call PrintMsg("file", "worker stoped")
         return

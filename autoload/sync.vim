@@ -5,6 +5,8 @@ set cpo&vim
 " Location of the grep utility
 if !exists("quickfix_sync")
     let quickfix_sync = 1
+else
+    let quickfix_sync += 1
 endif
 
 function! sync#read_dict(module, file, mode, line_num) abort

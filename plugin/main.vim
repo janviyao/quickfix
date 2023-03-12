@@ -22,7 +22,7 @@ function! Quickfix_first_index(module)
         let qfix_id = -1
     endif
 
-    let index_list = worker#map_list(a:module, qfix_id)
+    let index_list = map#list(a:module, qfix_id)
     if empty(index_list)
         return -1
     else
@@ -58,7 +58,7 @@ function! Quickfix_rebuild(module, index_list)
                 let prev = index
             endif
         endif
-        call worker#map_set(a:module, qfix_id, item, prev, next, 0)
+        call map#set(a:module, qfix_id, item, prev, next, 0)
 
         let index += 1
     endwhile
