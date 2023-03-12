@@ -10,29 +10,32 @@ endif
 let s:map_table = {
             \   'csfind' : [
             \   {
-            \     'qfix_id' : 5,
-            \     'data_id' : 8,
-            \     'next_id' : 1,
-            \     'invalid' : 1
+            \     'qfix_id'   : 5,
+            \     'work_idx'  : 0,
+            \     'map_next'  : 1,
+            \     'map_prev'  : 1,
+            \     'invalid'   : 1
             \   },
             \   {
-            \     'qfix_id' : 3,
-            \     'data_id' : 9,
-            \     'next_id' : 0,
-            \     'invalid' : 1
+            \     'qfix_id'   : 3,
+            \     'work_idx'  : 0,
+            \     'map_next'  : 0,
+            \     'map_prev'  : 1,
+            \     'invalid'   : 1
             \   }
             \   ],
-            \   'Rgrep' : [
+            \   'grep' : [
             \   {
-            \     'qfix_id' : 0,
-            \     'data_id' : 0,
-            \     'next_id' : 0,
-            \     'invalid' : 1
+            \     'qfix_id'   : 0,
+            \     'work_idx'  : 0,
+            \     'map_next'  : 0,
+            \     'map_prev'  : 1,
+            \     'invalid'   : 1
             \   }
             \   ]
             \ }
 
-let s:data_table = [
+let s:work_table = [
             \   {
             \     'timer_id' : 0,
             \     'cmd_type' : 'write',
@@ -42,7 +45,7 @@ let s:data_table = [
             \     'filepath' : '',
             \     'dat_list' : [],
             \     'dat_dic'  : {},
-            \     'status'   : 0
+            \     'status'   : 2
             \   },
             \   {
             \     'timer_id' : 0,
@@ -53,34 +56,203 @@ let s:data_table = [
             \     'filepath' : '',
             \     'dat_list' : [],
             \     'dat_dic'  : {},
-            \     'status'   : 0
+            \     'status'   : 2
             \   }
             \ ]
 
-let s:data_tail_index = 0
-let s:data_head_index = 0
+let s:worker_table_index = 0
 
-function! worker#get_data_index() abort
-    let length = len(s:data_table)
+function! worker#map_set(module, qfix_id, work_idx, map_prev, map_next, invalid) abort
+    "call PrintArgs("file", "map_set", "module=".a:module, "qfix_id=".a:qfix_id, "work_idx=".a:work_idx, "map_prev=".a:map_prev, "map_next=".a:map_next, "invalid=".a:invalid)
+    let info_list = s:map_table[a:module]
+
+    let length = len(info_list)
     let index =0
     while index < length
         let item = get(info_list, index)
-        if item["status"] == 0 
+        if item["qfix_id"] == a:qfix_id && item["work_idx"] == a:work_idx 
+            let item["qfix_id"]   = a:qfix_id
+            let item["work_idx"] = a:work_idx
+            let item["map_prev"]  = a:map_prev
+            let item["map_next"]  = a:map_next
+            let item["invalid"]   = a:invalid
+            call PrintDict("file", "map_table[".index."]", item)
             return index
         endif
         let index += 1
-    endfor
+    endwhile
+    
+    let info_dic = {}
+    let info_dic["qfix_id"]   = a:qfix_id
+    let info_dic["work_idx"] = a:work_idx
+    let info_dic["map_prev"]  = a:map_prev
+    let info_dic["map_next"]  = a:map_next
+    let info_dic["invalid"]   = a:invalid
+
+    call insert(info_list, info_dic, length)
+    call PrintDict("file", "map_table[".length."]", info_dic)
+    return length
+endfunction
+
+function! worker#map_del(module, qfix_id, work_idx) abort
+    call PrintArgs("file", "map_del", a:module, a:qfix_id, a:work_idx)
+    let info_list = s:map_table[a:module]
+
+    let length = len(info_list)
+    let index =0
+    while index < length
+        let item = get(info_list, index)
+        if item["qfix_id"] == a:qfix_id && item["map_next"] == a:work_idx 
+           let item["map_next"] = -1
+           break
+        endif
+        let index += 1
+    endwhile
+
+    let index =0
+    while index < length
+        let item = get(info_list, index)
+        if item["qfix_id"] == a:qfix_id && item["work_idx"] == a:work_idx 
+            call remove(info_list, index)
+            call async#map_del(a:module, a:qfix_id, item["map_next"])
+            return
+        endif
+        let index += 1
+    endwhile
+endfunction
+
+function! worker#map_next(module, qfix_id, work_index) abort
+    call PrintArgs("file", "map_next", a:module, a:qfix_id, a:work_index)
+    let info_list = s:map_table[a:module]
+
+    let map_next = -1
+    let index = 0
+    let length = len(info_list)
+    while index < length
+        let item = get(info_list, index)
+        if item["qfix_id"] == a:qfix_id && item["work_idx"] == a:work_index 
+            let map_next = item["map_next"] 
+            break
+        endif
+        let index += 1
+    endwhile
+
+    if map_next >= 0
+        let data_next = info_list[map_next]["work_idx"]
+        return data_next
+    else
+        call PrintMsg("error", "map_next module: ".a:module." qfix_id: ".a:qfix_id." work_idx: ".a:work_idx." fail")
+        return -1
+    endif
+endfunction
+
+function! worker#map_prev(module, qfix_id, work_index) abort
+    call PrintArgs("file", "map_prev", a:module, a:qfix_id, a:work_index)
+    let info_list = s:map_table[a:module]
+
+    let map_prev = -1
+    let index = 0
+    let length = len(info_list)
+    while index < length
+        let item = get(info_list, index)
+        if item["qfix_id"] == a:qfix_id && item["work_idx"] == a:work_index 
+            let map_prev = item["map_prev"] 
+            break
+        endif
+        let index += 1
+    endwhile
+    
+    if map_prev >= 0
+        let data_prev = info_list[map_prev]["work_idx"]
+        return data_prev
+    else
+        call PrintMsg("error", "map_prev module: ".a:module." qfix_id: ".a:qfix_id." work_idx: ".a:work_idx." fail")
+        return -1
+    endif
+endfunction
+
+function! worker#map_list(module, qfix_id) abort
+    call PrintArgs("file", "map_list", a:module, a:qfix_id)
+    let info_list = s:map_table[a:module]
+
+    let first_index = -1
+    let index = 0
+    let length = len(info_list)
+    while index < length
+        let item = get(info_list, index)
+        if item["qfix_id"] == a:qfix_id && item["map_prev"] == index
+            if item["invalid"] == 0 
+                let first_index = index
+                break
+            endif
+        endif
+        let index += 1
+    endwhile
+    
+    let res_list = []
+    if first_index >= 0
+        let cur_index = first_index
+        call add(res_list, cur_index)
+        let data_next = worker#map_next(a:module, a:qfix_id, cur_index)
+        while data_next >= 0
+            call add(res_list, data_next)
+            let data_next = worker#map_next(a:module, a:qfix_id, data_next)
+        endwhile
+    endif
+
+    call PrintMsg("file", "map_list module: ".a:module." qfix_id: ".a:qfix_id." list: ".string(res_list))
+    return res_list
+endfunction
+
+function! worker#work_index_alloc(module, qfix_id) abort
+    "call PrintArgs("file", "work_index_alloc", "module=".a:module, "qfix_id=".a:qfix_id)
+    let info_list = s:map_table[a:module]
+
+    let index = 0
+    let length = len(info_list)
+    while index < length
+        let item = get(info_list, index)
+        if item["qfix_id"] == a:qfix_id && item["invalid"] == 1
+            call worker#map_set(a:module, a:qfix_id, item["work_idx"], item["map_prev"], item["map_next"], 0)
+            return item["work_idx"]
+        endif
+        let index += 1
+    endwhile
+    
+    let work_index = s:worker_table_index
+    let s:worker_table_index += 1
+    if s:worker_table_index > 5000
+        let s:worker_table_index = 0
+    endif
+
+    call worker#map_set(a:module, a:qfix_id, work_index, length, length, 0)
+    return work_index
+endfunction
+
+function! worker#work_index_get() abort
+    let length = len(s:work_table)
+    let index =0
+    while index < length
+        let item = get(s:work_table, index)
+        if has_key(item, "status")
+            if item["status"] == 0 
+                call PrintMsg("file", "******worker_index******: ".index)
+                return index
+            endif
+        endif
+        let index += 1
+    endwhile
 
     return -1
 endfunction
 
-function! worker#work_status(data_index) abort
-    let info_dic = s:data_table[a:data_index]
+function! worker#work_status(work_index) abort
+    let info_dic = s:work_table[a:work_index]
     return info_dic["status"]
 endfunction
 
-function! worker#work_data(data_index, dat_type) abort
-    let info_dic = s:data_table[a:data_index]
+function! worker#work_data(work_index, dat_type) abort
+    let info_dic = s:work_table[a:work_index]
 
     if a:dat_type == "dic"
         return info_dic["dat_dic"]
@@ -89,155 +261,67 @@ function! worker#work_data(data_index, dat_type) abort
     endif
 endfunction
 
-function! worker#fill_worker(data_index, cmd_type, cmd_mode, dat_type, filepath, line_nr, status, data) abort
-    let info_dic = s:data_table[a:data_index]
+function! worker#work_fill(work_index, cmd_type, cmd_mode, dat_type, filepath, line_nr, status, data) abort
+    call PrintArgs("file", "work_fill", a:work_index, a:cmd_type, a:cmd_mode, a:dat_type, a:filepath, a:line_nr, a:status)
+    if !empty(a:data)
+        if a:dat_type == "dic"
+            call PrintDict("file", "arg[8] dict", a:data) 
+        elseif a:dat_type == "list"
+            call PrintList("file", "arg[8] list", a:data) 
+        endif
+    endif
 
-    info_dic["cmd_type"] = a:cmd_type
-    info_dic["cmd_mode"] = a:cmd_mode
-    info_dic["dat_type"] = a:dat_type
-    info_dic["filepath"] = a:filepath
-    info_dic["line_nr"]  = a:line_nr
-    info_dic["status"]   = a:status
-    
+    if a:work_index >= len(s:work_table)
+        call insert(s:work_table, {}, a:work_index)
+    endif
+
+    let info_dic = s:work_table[a:work_index]
+    let info_dic["cmd_type"] = a:cmd_type
+    let info_dic["cmd_mode"] = a:cmd_mode
+    let info_dic["dat_type"] = a:dat_type
+    let info_dic["filepath"] = a:filepath
+    let info_dic["line_nr"]  = a:line_nr
+    let info_dic["dat_dic"]  = {}
+    let info_dic["dat_list"] = []
+
     if a:dat_type == "dic"
-        call filter(info_dic["dat_dic"], 0)
         call extend(info_dic["dat_dic"], a:data)
     elseif a:dat_type == "list"
-        call filter(info_dic["dat_list"], 0)
         call extend(info_dic["dat_list"], a:data)
     endif
-endfunction
-
-function! s:map_set(module, qfix_id, data_id, invalid) abort
-    let info_list = s:map_table[a:module]
-
-    let length = len(info_list)
-    let index =0
-    while index < length
-        let item = get(info_list, index)
-        if item["qfix_id"] == a:qfix_id && item["data_id"] == a:data_id 
-            item["invalid"] = a:invalid
-            return index
-        endif
-        let index += 1
-    endfor
     
-    let info_dic = {}
-    info_dic["qfix_id"] = a:qfix_id
-    info_dic["data_id"] = a:data_id
-    info_dic["next_id"] = -1
-    info_dic["invalid"] = a:invalid
-    call insert(info_list, info_dic, length)
-    return length
+    "star to handle work
+    let info_dic["status"]   = a:status
 endfunction
 
-function! worker#map_del(module, qfix_id, data_id) abort
-    let info_list = s:map_table[a:module]
-
-    let length = len(info_list)
-    let index =0
-    while index < length
-        let item = get(info_list, index)
-        if item["qfix_id"] == a:qfix_id && item["next_id"] == a:data_id 
-           item["next_id"] = -1
-           break
-        endif
-        let index += 1
-    endfor
-
-    let index =0
-    while index < length
-        let item = get(info_list, index)
-        if item["qfix_id"] == a:qfix_id && item["data_id"] == a:data_id 
-            remove(info_list, index)
-            call async#map_del(a:module, a:qfix_id, item["next_id"])
-            return
-        endif
-        let index += 1
-    endfor
-endfunction
-
-function! worker#map_index(module, qfix_id) abort
-    let info_list = s:map_table[a:module]
-
-    let index = 0
-    let length = len(info_list)
-    while index < length
-        let item = get(info_list, index)
-        if item["qfix_id"] == a:qfix_id && item["invalid"] == 1
-            return item["data_id"]
-        endif
-        let index += 1
-    endfor
-    
-    let data_index = s:data_head_index
-    let s:data_head_index += 1
-    call s:map_set(a:module, a:qfix_id, data_index, 0)
-
-    return data_index
-endfunction
-
-function! worker#map_next(module, qfix_id, data_index) abort
-    let info_list = s:map_table[a:module]
-
-    let data_next = -1
-    let index = 0
-    let length = len(info_list)
-    while index < length
-        let item = get(info_list, index)
-        if item["qfix_id"] == a:qfix_id && item["data_id"] == a:data_index 
-            data_next = item["next_id"] 
-            break
-        endif
-        let index += 1
-    endfor
-    
-    if data_next >= 0
-        return data_next
-    else
-        if index >= length
-            call PrintMsg("error", "invalid data index: ".a:data_index)
-            return -1
-        endif
+function! worker#worker_is_stop()
+    let info = get(timer_info(g:quickfix_timer), 0) 
+    "call PrintMsg("file", "timer: ".string(info)) 
+    if info["paused"] == 1
+        return 1
     endif
-
-    let data_index = s:data_head_index
-    let s:data_head_index += 1
-
-    call s:map_set(a:module, a:qfix_id, data_index, 0)
-    info_list[index]["next_id"] = data_index
-    return data_index
+    return 0
 endfunction
 
-function! worker#data_handle(data_index) abort
-    let info_dic = s:data_table[a:data_index]
-    info_dic['status'] = 1
+function! worker#work_handler(work_index) abort
+    call PrintArgs("file", "work_handler", a:work_index)
+    let info_dic = s:work_table[a:work_index]
+    let info_dic['status'] = 1
+    call PrintDict("file", "work_table[".a:work_index."]", info_dic)
 
     let cmd_type  = info_dic['cmd_type'] 
     let cmd_mode  = info_dic['cmd_mode'] 
     let dat_type  = info_dic['dat_type'] 
     let file_path = info_dic['filepath'] 
     let line_nr   = info_dic['line_nr'] 
-    call PrintMsg("file", "cmd_type: ".data_index." cmd_mode: ".cmd_mode." dat_type: ".dat_type." file_path: ".file_path." line_nr: ".line_nr)
 
     if cmd_type == "write"
         if dat_type == "list"
             let data_list = info_dic['dat_list'] 
             for item in data_list
-                let fname=fnamemodify(bufname(item.bufnr), ':p:.') 
-                let item["filename"]=fname
-                let item["bufnr"]=0
-
-                if has_key(item, "end_lnum")
-                    unlet item["end_lnum"]
-                endif
-                if has_key(item, "end_col")
-                    unlet item["end_col"]
-                endif
-
                 call writefile([string(item)], file_path, cmd_mode)
             endfor
-        elseif cmd_type == "dic"
+        elseif dat_type == "dic"
             let data_dic  = info_dic['dat_dic'] 
             call writefile([string(data_dic)], file_path, cmd_mode)
         endif
@@ -256,7 +340,7 @@ function! worker#data_handle(data_index) abort
                 ""    call add(data_list, item)
                 "endfor
             endif
-        elseif cmd_type == "dic"
+        elseif dat_type == "dic"
             let data_dic  = info_dic['dat_dic'] 
             if filereadable(file_path)
                 let read_dic = eval(get(readfile(file_path, cmd_mode, line_nr), 0, ''))
@@ -266,7 +350,7 @@ function! worker#data_handle(data_index) abort
             endif
         endif
     endif
-    info_dic['status'] = 2
+    let info_dic['status'] = 2
 endfunction
 
 " restore 'cpo'
